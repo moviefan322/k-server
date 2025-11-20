@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const httpStatus = require('http-status');
 const ApiError = require('../utils/ApiError');
 const Booking = require('../models/booking.model');
+const { emailService } = require('./index');
+const logger = require('../config/logger');
 
 const toDate = (v) => (v instanceof Date ? v : new Date(v));
 
@@ -31,6 +33,18 @@ const createBooking = async (payload) => {
 
   try {
     const doc = await Booking.create({ ...payload, start_time: start, end_time: end });
+
+    // Send booking confirmation email
+    try {
+      if (doc.email) {
+        await emailService.sendBookingConfirmationEmail(doc.email, doc);
+        logger.info(`Booking confirmation email sent to ${doc.email}`);
+      }
+    } catch (emailError) {
+      // Log email error but don't fail the booking creation
+      logger.error('Failed to send booking confirmation email:', emailError.message);
+    }
+
     return doc;
   } catch (err) {
     // Handle duplicate key from unique index { email, start_time, end_time }

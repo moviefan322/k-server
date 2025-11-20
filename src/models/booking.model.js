@@ -26,10 +26,12 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      // light validation; adjust to your locale/format rules
+      // More flexible phone validation - accepts most common formats
       validate(value) {
-        if (!validator.isMobilePhone(String(value), 'any', { strictMode: false })) {
-          throw new Error('Invalid phone number');
+        // Allow basic phone number patterns (digits, spaces, hyphens, parentheses, plus sign)
+        const phoneRegex = /^[+]?[\d\s\-().]{7,15}$/;
+        if (!phoneRegex.test(String(value))) {
+          throw new Error('Invalid phone number format. Please use a valid phone number with 7-15 digits.');
         }
       },
     },

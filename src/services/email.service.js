@@ -1,26 +1,30 @@
-const nodemailer = require('nodemailer');
+const { MailerSend, EmailParams, Sender, Recipient } = require('mailersend');
 const config = require('../config/config');
 const logger = require('../config/logger');
 
-const transport = nodemailer.createTransport(config.email.smtp);
+const mailerSend = new MailerSend({
+  apiKey: config.email.mailersendApiToken,
+});
+
 /* istanbul ignore next */
 if (config.env !== 'test') {
-  transport
-    .verify()
-    .then(() => logger.info('Connected to email server'))
-    .catch(() => logger.warn('Unable to connect to email server. Make sure you have configured the SMTP options in .env'));
+  logger.info('MailerSend initialized with API token');
 }
 
 /**
- * Send an email
+ * Send an email using MailerSend API
  * @param {string} to
  * @param {string} subject
  * @param {string} text
  * @returns {Promise}
  */
 const sendEmail = async (to, subject, text) => {
-  const msg = { from: config.email.from, to, subject, text };
-  await transport.sendMail(msg);
+  const sentFrom = new Sender(config.email.from, 'Booking System');
+  const recipients = [new Recipient(to, to)];
+
+  const emailParams = new EmailParams().setFrom(sentFrom).setTo(recipients).setSubject(subject).setText(text);
+
+  await mailerSend.email.send(emailParams);
 };
 
 /**
@@ -55,9 +59,38 @@ If you did not create an account, then ignore this email.`;
   await sendEmail(to, subject, text);
 };
 
+/**
+ * Send booking confirmation email
+ * @param {string} to
+ * @param {Object} booking
+ * @returns {Promise}
+ */
+const sendBookingConfirmationEmail = async (to, booking) => {
+  const subject = 'Booking Confirmation';
+  const startTime = new Date(booking.start_time).toLocaleString();
+  const endTime = new Date(booking.end_time).toLocaleString();
+
+  const text = `Dear ${booking.name || 'Customer'},
+
+Your booking has been confirmed!
+
+Booking Details:
+- Type: ${booking.type || 'N/A'}
+- Start Time: ${startTime}
+- End Time: ${endTime}
+- Email: ${booking.email}
+
+Thank you for your booking!
+
+Best regards,
+Your Booking Team`;
+
+  await sendEmail(to, subject, text);
+};
+
 module.exports = {
-  transport,
   sendEmail,
   sendResetPasswordEmail,
   sendVerificationEmail,
+  sendBookingConfirmationEmail,
 };

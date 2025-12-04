@@ -44,6 +44,37 @@ const checkAvailability = catchAsync(async (req, res) => {
   res.send({ available });
 });
 
+const confirmBooking = catchAsync(async (req, res) => {
+  const booking = await bookingService.confirmBookingWithEmail(req.params.bookingId);
+  res.send(booking);
+});
+
+const getUnconfirmedBookings = catchAsync(async (req, res) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // start of today
+  const filter = { confirmed: false, start_time: { $gte: today } };
+  const options = pick(req.query, ['sortBy', 'limit', 'page']);
+  const result = await bookingService.queryBookings(filter, options);
+  res.send(result);
+});
+
+/**
+ * Reject (delete) a booking and send rejection email
+ * @param {Request} req
+ * @param {Response} res
+ * @param {Function} next
+ */
+const rejectBooking = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { message } = req.body;
+    await bookingService.deleteBookingWithMessage(id, message);
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   createBooking,
   getBookings,
@@ -51,4 +82,7 @@ module.exports = {
   updateBooking,
   deleteBooking,
   checkAvailability,
+  confirmBooking,
+  getUnconfirmedBookings,
+  rejectBooking,
 };

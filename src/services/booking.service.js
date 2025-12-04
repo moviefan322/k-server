@@ -5,6 +5,7 @@ const ApiError = require('../utils/ApiError');
 const Booking = require('../models/booking.model');
 const { emailService } = require('./index');
 const logger = require('../config/logger');
+const { sendBookingActuallyConfirmedEmail } = require('./email.service');
 
 const toDate = (v) => (v instanceof Date ? v : new Date(v));
 
@@ -61,12 +62,14 @@ const createBooking = async (payload) => {
  * options: { sortBy, limit, page }
  */
 const queryBookings = async (filter, options, extra = {}) => {
-  const { type, email, from, to } = filter || {};
+  const { type, email, from, to, confirmed, start_time } = filter || {};
   const mongoFilter = {};
   if (type) mongoFilter.type = type;
   if (email) mongoFilter.email = email;
+  if (typeof confirmed === 'boolean') mongoFilter.confirmed = confirmed;
+  if (start_time) mongoFilter.start_time = start_time;
   // overlap window: start < to  AND  end > from
-  if (to) mongoFilter.start_time = { $lt: new Date(to) };
+  if (to) mongoFilter.start_time = { ...(mongoFilter.start_time || {}), $lt: new Date(to) };
   if (from) mongoFilter.end_time = { $gt: new Date(from) };
 
   const paginateOpts = {
@@ -148,6 +151,30 @@ const deleteBookingById = async (id) => {
 };
 
 /**
+ * Delete booking by id and send rejection email with custom message
+ * @param {string} id
+ * @param {string} adminMessage
+ * @returns {Promise}
+ */
+const deleteBookingWithMessage = async (id, adminMessage) => {
+  if (!mongoose.isValidObjectId(id)) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Booking not found');
+  }
+  const booking = await Booking.findById(id);
+  if (!booking) throw new ApiError(httpStatus.NOT_FOUND, 'Booking not found');
+  // Send rejection email, but always delete booking even if email fails
+  if (booking.email) {
+    try {
+      await emailService.sendBookingRejectionEmail(booking.email, booking, adminMessage);
+    } catch (emailError) {
+      logger.error('Failed to send booking rejection email:', emailError.message);
+    }
+  }
+  const deleted = await Booking.findByIdAndDelete(id);
+  return deleted;
+};
+
+/**
  * Check availability for a proposed window
  */
 const checkAvailability = async (startISO, endISO) => {
@@ -159,6 +186,23 @@ const checkAvailability = async (startISO, endISO) => {
   return Booking.isTimeSlotAvailable(start, end);
 };
 
+/**
+ * Confirm booking and send confirmation email
+ * @param {string} id
+ * @returns {Promise<Booking>}
+ */
+const confirmBookingWithEmail = async (id) => {
+  const booking = await updateBookingById(id, { confirmed: true });
+  if (booking && booking.email) {
+    try {
+      await sendBookingActuallyConfirmedEmail(booking.email, booking);
+    } catch (emailError) {
+      logger.error('Failed to send actually confirmed email:', emailError.message);
+    }
+  }
+  return booking;
+};
+
 module.exports = {
   createBooking,
   queryBookings,
@@ -166,4 +210,6 @@ module.exports = {
   updateBookingById,
   deleteBookingById,
   checkAvailability,
+  deleteBookingWithMessage,
+  confirmBookingWithEmail,
 };

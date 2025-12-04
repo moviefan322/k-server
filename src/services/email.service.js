@@ -66,13 +66,13 @@ If you did not create an account, then ignore this email.`;
  * @returns {Promise}
  */
 const sendBookingConfirmationEmail = async (to, booking) => {
-  const subject = 'Booking Confirmation';
+  // Email to booker
+  const subjectBooker = 'Booking Request Received';
   const startTime = new Date(booking.start_time).toLocaleString();
   const endTime = new Date(booking.end_time).toLocaleString();
+  const textBooker = `Dear ${booking.name || 'Customer'},
 
-  const text = `Dear ${booking.name || 'Customer'},
-
-Your booking has been confirmed!
+Thank you for your booking request!
 
 Booking Details:
 - Type: ${booking.type || 'N/A'}
@@ -80,11 +80,67 @@ Booking Details:
 - End Time: ${endTime}
 - Email: ${booking.email}
 
-Thank you for your booking!
+We will let you know when your booking is confirmed.
 
-Best regards,
-Your Booking Team`;
+-Katharsis`;
+  await sendEmail(to, subjectBooker, textBooker);
 
+  // Email to admin
+  const adminEmail = 'philipscottneumann0@gmail.com';
+  const subjectAdmin = 'Pending Booking Request';
+  const textAdmin = `Admin,
+
+A new booking request requires confirmation:
+
+Booking Details:
+- Name: ${booking.name || 'N/A'}
+- Email: ${booking.email}
+- Phone: ${booking.phone || 'N/A'}
+- Type: ${booking.type || 'N/A'}
+- Start Time: ${startTime}
+- End Time: ${endTime}
+- Notes: ${booking.notes || ''}
+
+Please review and confirm this booking.`;
+  await sendEmail(adminEmail, subjectAdmin, textAdmin);
+};
+
+/**
+ * Send booking rejection email
+ * @param {string} to
+ * @param {Object} booking
+ * @param {string} adminMessage
+ * @returns {Promise}
+ */
+const sendBookingRejectionEmail = async (to, booking, adminMessage) => {
+  const subject = 'Booking Request Rejected';
+  const startTime = new Date(booking.start_time).toLocaleString();
+  const endTime = new Date(booking.end_time).toLocaleString();
+  const text = `Dear ${
+    booking.name || 'Customer'
+  },\n\nWe regret to inform you that your booking request could not be accommodated.\n\nBooking Details:\n- Type: ${
+    booking.type || 'N/A'
+  }\n- Start Time: ${startTime}\n- End Time: ${endTime}\n- Email: ${booking.email}\n\n${
+    adminMessage ? `Message from Kaleb: ${adminMessage}\n\n` : ''
+  }Sorry for the inconvenience. Please feel free to request another time or contact us for more information.\n\n-Katharsis`;
+  await sendEmail(to, subject, text);
+};
+
+/**
+ * Send booking actually confirmed email
+ * @param {string} to
+ * @param {Object} booking
+ * @returns {Promise}
+ */
+const sendBookingActuallyConfirmedEmail = async (to, booking) => {
+  const subject = 'Your Booking is Confirmed';
+  const startTime = new Date(booking.start_time).toLocaleString();
+  const endTime = new Date(booking.end_time).toLocaleString();
+  const text = `Dear ${booking.name || 'Customer'},\n\nYour booking has been confirmed!\n\nBooking Details:\n- Type: ${
+    booking.type || 'N/A'
+  }\n- Start Time: ${startTime}\n- End Time: ${endTime}\n- Email: ${
+    booking.email
+  }\n\nThank you for booking with us. We look forward to seeing you!\n\n-Katharsis`;
   await sendEmail(to, subject, text);
 };
 
@@ -93,4 +149,6 @@ module.exports = {
   sendResetPasswordEmail,
   sendVerificationEmail,
   sendBookingConfirmationEmail,
+  sendBookingRejectionEmail,
+  sendBookingActuallyConfirmedEmail,
 };

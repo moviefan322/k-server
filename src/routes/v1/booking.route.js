@@ -15,10 +15,15 @@ router.route('/').post(validate(bookingValidation.createBooking), bookingControl
 
 router.get('/availability', validate(bookingValidation.checkAvailability), bookingController.checkAvailability);
 
+router.get('/unconfirmed', auth('manageBookings'), bookingController.getUnconfirmedBookings);
+
 router
   .route('/:bookingId')
   .get(auth('getBookings'), validate(bookingValidation.getBooking), bookingController.getBooking)
   .patch(auth('manageBookings'), validate(bookingValidation.updateBooking), bookingController.updateBooking)
   .delete(auth('manageBookings'), validate(bookingValidation.deleteBooking), bookingController.deleteBooking);
+
+router.patch('/:bookingId/confirm', auth('manageBookings'), bookingController.confirmBooking);
+router.delete('/:id/reject', bookingController.rejectBooking);
 
 module.exports = router;

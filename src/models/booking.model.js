@@ -57,6 +57,10 @@ const bookingSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    confirmed: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

@@ -86,7 +86,7 @@ We will let you know when your booking is confirmed.
   await sendEmail(to, subjectBooker, textBooker);
 
   // Email to admin
-  const adminEmail = 'philipscottneumann0@gmail.com';
+  const adminEmail = 'lngclark7793@gmail.com';
   const subjectAdmin = 'Pending Booking Request';
   const textAdmin = `Admin,
 

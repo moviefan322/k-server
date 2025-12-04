@@ -1,6 +1,7 @@
 const { MailerSend, EmailParams, Sender, Recipient } = require('mailersend');
 const config = require('../config/config');
 const logger = require('../config/logger');
+const moment = require('moment-timezone');
 
 const mailerSend = new MailerSend({
   apiKey: config.email.mailersendApiToken,
@@ -68,8 +69,8 @@ If you did not create an account, then ignore this email.`;
 const sendBookingConfirmationEmail = async (to, booking) => {
   // Email to booker
   const subjectBooker = 'Booking Request Received';
-  const startTime = new Date(booking.start_time).toLocaleString();
-  const endTime = new Date(booking.end_time).toLocaleString();
+  const startTime = moment(booking.start_time).tz('America/New_York').format('YYYY-MM-DD h:mm A z');
+  const endTime = moment(booking.end_time).tz('America/New_York').format('YYYY-MM-DD h:mm A z');
   const textBooker = `Dear ${booking.name || 'Customer'},
 
 Thank you for your booking request!
@@ -114,8 +115,8 @@ Please review and confirm this booking.`;
  */
 const sendBookingRejectionEmail = async (to, booking, adminMessage) => {
   const subject = 'Booking Request Rejected';
-  const startTime = new Date(booking.start_time).toLocaleString();
-  const endTime = new Date(booking.end_time).toLocaleString();
+  const startTime = moment(booking.start_time).tz('America/New_York').format('YYYY-MM-DD h:mm A z');
+  const endTime = moment(booking.end_time).tz('America/New_York').format('YYYY-MM-DD h:mm A z');
   const text = `Dear ${
     booking.name || 'Customer'
   },\n\nWe regret to inform you that your booking request could not be accommodated.\n\nBooking Details:\n- Type: ${
@@ -134,8 +135,8 @@ const sendBookingRejectionEmail = async (to, booking, adminMessage) => {
  */
 const sendBookingActuallyConfirmedEmail = async (to, booking) => {
   const subject = 'Your Booking is Confirmed';
-  const startTime = new Date(booking.start_time).toLocaleString();
-  const endTime = new Date(booking.end_time).toLocaleString();
+  const startTime = moment(booking.start_time).tz('America/New_York').format('YYYY-MM-DD h:mm A z');
+  const endTime = moment(booking.end_time).tz('America/New_York').format('YYYY-MM-DD h:mm A z');
   const text = `Dear ${booking.name || 'Customer'},\n\nYour booking has been confirmed!\n\nBooking Details:\n- Type: ${
     booking.type || 'N/A'
   }\n- Start Time: ${startTime}\n- End Time: ${endTime}\n- Email: ${
